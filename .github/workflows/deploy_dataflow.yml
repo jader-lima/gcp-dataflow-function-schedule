@@ -119,7 +119,7 @@ jobs:
     - name: Create Dataflow classic template in Dataflow Template Bucket
       run: |-
         python $SCRIPTS/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
-        --staging_location ${{ env.GS_PREFIX}}/${{secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging \
-        --temp_location ${{ env.GS_PREFIX}}/${{secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp \
+        --staging_location ${{ env.GS_PREFIX}}/${{secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }} \
+        --temp_location ${{ env.GS_PREFIX}}/${{secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }} \
         --template_location ${{ env.GS_PREFIX }}/${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE}}/templates/${{ env.TEMPLATE_NAME }}
 
