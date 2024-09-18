@@ -1,0 +1,24 @@
+version: '3'
+services:
+  jupyter:
+    image: apache-beam-local:gcp
+    container_name: apache-beam-local-gcp
+    build: .
+    ports:
+      - "8888:8888"
+    volumes:
+      # Mapeia duas pastas locais para o container
+      - ./notebook:/home/jovyan/notebook:rw
+      - ./data:/home/jovyan/data:rw
+      - /var/run/docker.sock:/var/run/docker.sock 
+    networks:
+      - jupyter-network
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+    command: "jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''"
+    user: root # Inicialmente como root para evitar problemas de permissão
+    restart: unless-stopped
+
+networks:
+  jupyter-network:
+    driver: bridge

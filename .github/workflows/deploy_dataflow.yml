@@ -1,0 +1,122 @@
+name: Create and Deploy DataFlow Classic template with a Schedule to run it
+
+env:
+    SCRIPTS : scripts
+    REGION: us-east1
+    ZONE: us-east1-b
+    GCP_BUCKET_DATAFLOW_TEMPLATE : datalake_dataflow_template_17092024
+    GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP : datalake_dataflow_template_temp_17092024
+    GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING : datalake_dataflow_template_staging_17092024
+    GCP_BUCKET_DATAFLOW_DATA : datalake_dataflow_data_17092024
+    TRANSIENT_DATALAKE_FILES: transient
+    BUCKET_DATALAKE_FOLDER: transient
+    TEMPLATE_NAME : etl_olist_template
+    INPUT_FOLDER : inputs
+    OUTPUT_FOLDER : output
+    GS_PREFIX : gs://
+    RUNNER : Dataflow
+
+on:
+    push:
+        branchs: [main]
+
+jobs:
+  deploy-buckets:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Authorize GCP
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json:  ${{ secrets.GCP_SA_KEY }}
+    
+    # Step to Authenticate with GCP
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 363.0.0'
+        project_id: ${{ secrets.PROJECT_ID }}
+
+    # Step to Configure Docker to use the gcloud command-line tool as a credential helper
+    - name: Configure Docker
+      run: |-
+        gcloud auth configure-docker
+
+
+    # Step to Create GCP Bucket 
+    - name: Create Google Cloud Storage - Dataflow Template
+      run: |-
+        if ! gsutil ls -p ${{ secrets.PROJECT_ID }} gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE }} &> /dev/null; \
+          then \
+            gcloud storage buckets create gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE }} --default-storage-class=nearline --location=${{ env.REGION }}
+          else
+            echo "Cloud Storage : gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE }}  already exists" ! 
+          fi
+
+    # Step to Create GCP Bucket 
+    - name: Create Google Cloud Storage - Dataflow  bucket from temporary files
+      run: |-
+        if ! gsutil ls -p ${{ secrets.PROJECT_ID }} gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }} &> /dev/null; \
+          then \
+            gcloud storage buckets create gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }} --default-storage-class=nearline --location=${{ env.REGION }}
+          else
+            echo "Cloud Storage : gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}  already exists" ! 
+          fi
+
+    # Step to Create GCP Bucket 
+    - name: Create Google Cloud Storage - Dataflow  bucket from staging files
+      run: |-
+        if ! gsutil ls -p ${{ secrets.PROJECT_ID }} gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }} &> /dev/null; \
+          then \
+            gcloud storage buckets create gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }} --default-storage-class=nearline --location=${{ env.REGION }}
+          else
+            echo "Cloud Storage : gs://${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}  already exists" ! 
+          fi
+
+
+    # Step to Create GCP Bucket 
+    - name: Create Google Cloud Storage - datalake
+      run: |-
+        if ! gsutil ls -p ${{ secrets.PROJECT_ID }} gs://${{ secrets.GCP_BUCKET_DATAFLOW_DATA }} &> /dev/null; \
+          then \
+            gcloud storage buckets create gs://${{ secrets.GCP_BUCKET_DATAFLOW_DATA }} --default-storage-class=nearline --location=${{ env.REGION }}
+          else
+            echo "Cloud Storage : gs://${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}  already exists" ! 
+          fi
+
+
+
+    # Step to Upload the file to GCP Bucket - transient files
+    - name: Upload transient files to Google Cloud Storage
+      run: |-
+        TARGET=${{ env.TRANSIENT_DATALAKE_FILES }}
+        BUCKET_PATH=${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}    
+        gsutil cp -r $TARGET gs://${BUCKET_PATH}
+
+
+  build-dataflow-classic-template:
+    needs: [deploy-buckets]
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies apache beam dependencies
+      run: |
+        cd $SCRIPTS
+        python -m pip install --upgrade pip
+        pip install coverage
+        if  [ -f requirements.txt ]; then pip install -r 
+    - name: Create Dataflow classic template in Dataflow Template Bucket
+      run: | -
+        python $SCRIPTS/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
+        --staging_location ${{ env.GS_PREFIX$GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging \
+        --temp_location ${{ env.GS_PREFIX$GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp \
+        --template_location ${{ env.GS_PREFIX }}/${{ env.GCP_BUCKET_DATAFLOW_TEMPLATE}}/templates/${{ env.TEMPLATE_NAME }}
+

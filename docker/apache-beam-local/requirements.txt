@@ -1,0 +1,6 @@
+apache-beam[gcp,interactive,dataframe]==2.37.0
+numpy>=1.14.3
+scipy==1.7.3
+scikit_learn==1.0.2
+setuptools
+
