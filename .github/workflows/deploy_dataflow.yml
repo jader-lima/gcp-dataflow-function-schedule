@@ -114,7 +114,7 @@ jobs:
         pip install coverage
         if  [ -f requirements.txt ]; then pip install -r 
     - name: Create Dataflow classic template in Dataflow Template Bucket
-      run: | -
+      run: |-
         python $SCRIPTS/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
         --staging_location ${{ env.GS_PREFIX$GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging \
         --temp_location ${{ env.GS_PREFIX$GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp \
