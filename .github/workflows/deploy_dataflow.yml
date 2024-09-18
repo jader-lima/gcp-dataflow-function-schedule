@@ -109,7 +109,7 @@ jobs:
         python-version: 3.8
     - name: Install dependencies apache beam dependencies
       run: |-
-        cd $SCRIPTS
+        cd ${{ env.SCRIPTS }}
         python -m pip install --upgrade pip
         pip install coverage
         if  [ -f requirements.txt ]; then pip install -r 
