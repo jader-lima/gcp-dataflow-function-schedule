@@ -16,6 +16,7 @@ env:
     GS_PREFIX : gs://
     RUNNER : Dataflow
 
+
 on:
     push:
         branchs: [main]
@@ -97,26 +98,54 @@ jobs:
         BUCKET_PATH=${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}    
         gsutil cp -r $TARGET gs://${BUCKET_PATH}
 
-
   build-dataflow-classic-template:
     needs: [deploy-buckets]
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-    - name: Set up python 3.7
+    
+    # Step to Authenticate with GCP
+    - name: Authorize GCP
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json:  ${{ secrets.GCP_SA_KEY }}
+
+    # Step to Configure  Cloud SDK
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 363.0.0'
+        project_id: ${{ secrets.PROJECT_ID }}
+        
+    # Step to Configure Docker to use the gcloud command-line tool as a credential helper
+    - name: Configure Docker
+      run: |-
+        gcloud auth configure-docker
+
+    - name: Set up python 3.8
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.8.16
+
     - name: Install dependencies apache beam dependencies
-      run: |
-        cd $SCRIPTS
-        python -m pip install --upgrade pip
+      run: |-
+        cd ${{ env.SCRIPTS }}
+        python -m pip install --upgrade pip setuptools==65.5.0 wheel
         pip install coverage
-        if  [ -f requirements.txt ]; then pip install -r 
+        if [ -f requirements.txt ]; 
+          then 
+            pip install --verbose -r requirements.txt; 
+        fi
+
     - name: Create Dataflow classic template in Dataflow Template Bucket
       run: |-
-        python $SCRIPTS/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
-        --staging_location ${{ env.GS_PREFIX$GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging \
-        --temp_location ${{ env.GS_PREFIX$GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp \
-        --template_location ${{ env.GS_PREFIX }}/${{ env.GCP_BUCKET_DATAFLOW_TEMPLATE}}/templates/${{ env.TEMPLATE_NAME }}
-
+        GCP_BUCKET_DATAFLOW_TEMPLATE=datalake_dataflow_template_17092024
+        GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=datalake_dataflow_template_temp_17092024
+        GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=gs://datalake_dataflow_template_staging_17092024/staging
+        GCP_BUCKET_DATAFLOW_DATA=datalake_dataflow_data_17092024
+        TEMPLATE_NAME=etl_olist_template
+        GS_PREFIX=gs://
+        python ${{ env.SCRIPTS }}/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
+        --staging_location gs://datalake_dataflow_template_staging_17092024/staging \
+        --temp_location gs://datalake_dataflow_template_temp_17092024/temp \
+        --template_location gs://datalake_dataflow_template_temp_17092024/templates/etl_olist_template
