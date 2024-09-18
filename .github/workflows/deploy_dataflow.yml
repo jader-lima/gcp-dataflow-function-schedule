@@ -141,7 +141,7 @@ jobs:
       run: |-
         GCP_BUCKET_DATAFLOW_TEMPLATE=datalake_dataflow_template_17092024
         GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=datalake_dataflow_template_temp_17092024
-        GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=datalake_dataflow_template_staging_17092024
+        GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=gs://datalake_dataflow_template_staging_17092024
         GCP_BUCKET_DATAFLOW_DATA=datalake_dataflow_data_17092024
         TEMPLATE_NAME=etl_olist_template
         GS_PREFIX=gs://
