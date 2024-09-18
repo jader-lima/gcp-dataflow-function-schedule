@@ -146,6 +146,6 @@ jobs:
         TEMPLATE_NAME=etl_olist_template
         GS_PREFIX=gs://
         python ${{ env.SCRIPTS }}/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
-        --staging_location $GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING/staging \
+        --staging_location $GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING \
         --temp_location $GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP/temp \
         --template_location $GCP_BUCKET_DATAFLOW_TEMPLATE/templates/$TEMPLATE_NAME
