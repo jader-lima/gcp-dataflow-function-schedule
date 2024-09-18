@@ -141,9 +141,9 @@ jobs:
       run: |-
         TEMPLATE_NAME=etl_olist_template
         GS_PREFIX=gs://
-        GCP_BUCKET_DATAFLOW_TEMPLATE=${{ env.GS_PREFIX }}/${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE }}/templates/$TEMPLATE_NAME
-        GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=${{ env.GS_PREFIX }}/${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp
-        GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=${{ env.GS_PREFIX }}/${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging
+        GCP_BUCKET_DATAFLOW_TEMPLATE=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE }}/templates/$TEMPLATE_NAME
+        GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp
+        GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging
 
         python ${{ env.SCRIPTS }}/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
         --staging_location $GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING \
