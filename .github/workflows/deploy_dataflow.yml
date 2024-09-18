@@ -139,13 +139,13 @@ jobs:
 
     - name: Create Dataflow classic template in Dataflow Template Bucket
       run: |-
-        GCP_BUCKET_DATAFLOW_TEMPLATE=datalake_dataflow_template_17092024
-        GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=datalake_dataflow_template_temp_17092024
-        GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=gs://datalake_dataflow_template_staging_17092024/staging
-        GCP_BUCKET_DATAFLOW_DATA=datalake_dataflow_data_17092024
         TEMPLATE_NAME=etl_olist_template
         GS_PREFIX=gs://
+        GCP_BUCKET_DATAFLOW_TEMPLATE=${{ env.GS_PREFIX }}/${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE }}/templates/$TEMPLATE_NAME
+        GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=${{ env.GS_PREFIX }}/${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp
+        GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=${{ env.GS_PREFIX }}/${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging
+
         python ${{ env.SCRIPTS }}/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
-        --staging_location gs://datalake_dataflow_template_staging_17092024/staging \
-        --temp_location gs://datalake_dataflow_template_temp_17092024/temp \
-        --template_location gs://datalake_dataflow_template_temp_17092024/templates/etl_olist_template
+        --staging_location $GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING \
+        --temp_location $GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP \
+        --template_location $GCP_BUCKET_DATAFLOW_TEMPLATE
