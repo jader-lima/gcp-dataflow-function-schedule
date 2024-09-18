@@ -125,16 +125,16 @@ jobs:
     - name: Set up python 3.8
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.8.16
 
     - name: Install dependencies apache beam dependencies
       run: |-
         cd ${{ env.SCRIPTS }}
-        python -m pip install --upgrade pip
+        python -m pip install --upgrade pip setuptools==65.5.0 wheel
         pip install coverage
         if [ -f requirements.txt ]; 
           then 
-            pip install -r requirements.txt; 
+            pip install --verbose -r requirements.txt; 
         fi
 
     - name: Create Dataflow classic template in Dataflow Template Bucket
