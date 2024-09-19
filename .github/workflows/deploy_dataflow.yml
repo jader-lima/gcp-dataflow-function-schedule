@@ -202,7 +202,8 @@ jobs:
 
     - name: Create Dataflow classic template in Dataflow Template Bucket
       run: |-
-        gcloud functions deploy ${{ env.FUNCTION_SCRIPTS }}/${{ env.FUNCTION_NAME }} \
+        cd ${{ env.FUNCTION_SCRIPTS }}
+        gcloud functions deploy ${{ env.FUNCTION_NAME }} \
         --runtime ${{ env.PYTHON_FUNCTION_RUNTIME }} \
         --trigger-http \
         --allow-unauthenticated \
