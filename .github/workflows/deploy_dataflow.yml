@@ -1,7 +1,6 @@
 name: Create and Deploy DataFlow Classic template with a Schedule to run it
 
 env:
-    DATAFLOW_SCRIPTS : cloud_function_scripts
     REGION: us-east1
     ZONE: us-east1-b
     GCP_BUCKET_DATAFLOW_TEMPLATE : datalake_dataflow_template_17092024
@@ -28,6 +27,7 @@ env:
     FUNCTION_NAME : create_dataflow_job
     ENTRY_POINT : create_dataflow_job
     PYTHON_FUNCTION_RUNTIME : python310
+    DATAFLOW_SCRIPTS : dataflow_scripts
     FUNCTION_SCRIPTS : cloud_function_scripts
     ROLE1 : "roles/cloudfunctions.invoker"
     ROLE2 : "roles/dataflow.admin"
