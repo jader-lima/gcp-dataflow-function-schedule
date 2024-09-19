@@ -38,8 +38,6 @@ env:
     NUM_WORKERS : 2 
     MAX_WORKERS: 2
 
-    \"worker_machine_type\":\"n1-standard-1\",\"num_workers\":2,\"max_workers\":2,
-
 on:
     push:
         branchs: [main]
