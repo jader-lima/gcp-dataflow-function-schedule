@@ -302,7 +302,7 @@ jobs:
       run: |-
         gcloud projects add-iam-policy-binding ${{secrets.PROJECT_ID}} \
         --member=serviceAccount:${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com \
-        --role="${{env.ROLE2}}""
+        --role="${{env.ROLE2}}"
 
     - name: Add the storage.objectViewer role for service account
       run: |-
