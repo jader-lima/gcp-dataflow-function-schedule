@@ -251,7 +251,6 @@ jobs:
         --runtime ${{ env.PYTHON_FUNCTION_RUNTIME }} \
         --trigger-http \
         --allow-unauthenticated \
-        --trigger-http --allow-unauthenticated \
         --region ${{ env.REGION }} \
         --entry-point ${{ env.ENTRY_POINT }}
 
