@@ -79,27 +79,30 @@ jobs:
     # Step to Create GCP Bucket 
     - name: Enable cloudbuild.googleapis.com api
       run: |-
-        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i cloudbuild.googleapis.com &> /dev/null; \
+        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i ${{ env.GCP_SERVICE_API_1 }} &> /dev/null; \
         then \
-          gcloud services enable cloudbuild.googleapis.com
+          gcloud services enable ${{ env.GCP_SERVICE_API_1 }}
+          echo "Service : ${{ env.GCP_SERVICE_API_1 }}  enabled" ! 
         else
           echo "Service : ${{ env.GCP_SERVICE_API_1 }}  already enabled" ! 
         fi
-
+    ##run.googleapis.com api
     - name: Enable run.googleapis.com api
       run: |-        
-        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i run.googleapis.com &> /dev/null; \
+        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i ${{ env.GCP_SERVICE_API_2 }} &> /dev/null; \
         then \
-          gcloud services enable cloudbuild.googleapis.com
+          gcloud services enable ${{ env.GCP_SERVICE_API_2 }} 
+          echo "Service : ${{ env.GCP_SERVICE_API_2 }}  enabled" ! 
         else
           echo "Service : ${{ env.GCP_SERVICE_API_2 }}  already enabled" ! 
         fi
 
     - name: Enable cloudfunctions.googleapis.com api
       run: |-
-        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i cloudfunctions.googleapis.com &> /dev/null; \
+        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i ${{ env.GCP_SERVICE_API_3 }} &> /dev/null; \
         then \
-          gcloud services enable run.googleapis.com
+          gcloud services enable ${{ env.GCP_SERVICE_API_3 }}
+          echo "Service : ${{ env.GCP_SERVICE_API_3 }}  enabled" ! 
         else
           echo "Service : ${{ env.GCP_SERVICE_API_3 }}  already enabled" ! 
         fi
