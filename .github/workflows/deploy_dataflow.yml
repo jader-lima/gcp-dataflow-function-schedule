@@ -29,9 +29,9 @@ env:
     PYTHON_FUNCTION_RUNTIME : python310
     DATAFLOW_SCRIPTS : dataflow_scripts
     FUNCTION_SCRIPTS : cloud_function_scripts
-    ROLE1 : "roles/cloudfunctions.invoker"
-    ROLE2 : "roles/dataflow.admin"
-    ROLE3 : "roles/storage.objectViewer"
+    ROLE1 : roles/cloudfunctions.invoker
+    ROLE2 : roles/dataflow.admin
+    ROLE3 : roles/storage.objectViewer
     SCHEDULE_NAME : run_dataflow_job_olist_etl
     DATAFLOW_JOB_NAME : olist_analysis
     WORKER_MACHINE_TYPE : n1-standard-1
@@ -291,26 +291,26 @@ jobs:
             gcloud iam service-accounts create ${{ env.SERVICE_ACCOUNT_NAME }} \
             --display-name="scheduler dataflow service account"
           fi
+
     - name: Add the cloudfunctions.invoker role for service account
       run: |-
         gcloud projects add-iam-policy-binding ${{secrets.PROJECT_ID}} \
         --member=serviceAccount:${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com \
-        --role=projects/${{secrets.PROJECT_ID}}/roles/${{env.CUSTOM_ROLE}}
-        -role="${{env.ROLE1}}""
+        --role="${{env.ROLE1}}"
 
     - name: Add the dataflow.admin role for service account
       run: |-
         gcloud projects add-iam-policy-binding ${{secrets.PROJECT_ID}} \
         --member=serviceAccount:${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com \
-        --role=projects/${{secrets.PROJECT_ID}}/roles/${{env.CUSTOM_ROLE}}
-        -role="${{env.ROLE2}}""
+        --role="${{env.ROLE2}}""
 
     - name: Add the storage.objectViewer role for service account
       run: |-
         gcloud projects add-iam-policy-binding ${{secrets.PROJECT_ID}} \
         --member=serviceAccount:${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com \
-        --role=projects/${{secrets.PROJECT_ID}}/roles/${{env.CUSTOM_ROLE}}
-        -role="${{env.ROLE3}}"
+        --role="${{env.ROLE3}}"
+
+
 
     - name: Create cloud schedule for dataflow classi template execution
       run: |-
