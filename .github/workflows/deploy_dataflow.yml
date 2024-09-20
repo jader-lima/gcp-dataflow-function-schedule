@@ -247,7 +247,6 @@ jobs:
       run: |-
         cd ${{ env.FUNCTION_SCRIPTS }}
         gcloud functions deploy ${{ env.FUNCTION_NAME }} \
-        --gen2 \
         --runtime ${{ env.PYTHON_FUNCTION_RUNTIME }} \
         --trigger-http \
         --allow-unauthenticated \
