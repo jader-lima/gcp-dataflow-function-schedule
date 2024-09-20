@@ -40,6 +40,8 @@ env:
     GCP_SERVICE_API_1 : cloudbuild.googleapis.com
     GCP_SERVICE_API_2 : run.googleapis.com
     GCP_SERVICE_API_3 : cloudfunctions.googleapis.com
+    SERVICE_ACCOUNT_NAME: account-dataflow-scheduler
+
 
 
 on:
