@@ -37,13 +37,81 @@ env:
     WORKER_MACHINE_TYPE : n1-standard-1
     NUM_WORKERS : 2 
     MAX_WORKERS: 2
+    GCP_SERVICE_API_1 : cloudbuild.googleapis.com
+    GCP_SERVICE_API_2 : run.googleapis.com
+    GCP_SERVICE_API_3 : cloudfunctions.googleapis.com
+
 
 on:
     push:
         branchs: [main]
 
 jobs:
+
+  enable-services:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    
+    # Step to Authenticate with GCP
+    - name: Authorize GCP
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json:  ${{ secrets.GCP_SA_KEY }}
+
+    # Step to Configure  Cloud SDK
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 363.0.0'
+        project_id: ${{ secrets.PROJECT_ID }}
+        
+    # Step to Configure Docker to use the gcloud command-line tool as a credential helper
+    - name: Configure Docker
+      run: |-
+        gcloud auth configure-docker
+
+    - name: Set up python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8.16
+
+    # Step to Create GCP Bucket 
+    - name: Enable cloudbuild.googleapis.com api
+      run: |-
+        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i cloudbuild.googleapis.com &> /dev/null; \
+        then \
+          gcloud services enable cloudbuild.googleapis.com
+        else
+          echo 'api habilitada'
+          echo "Service : ${{ env.GCP_SERVICE_API_1 }}  already enabled" ! 
+        fi
+
+    - name: Enable run.googleapis.com api
+      run: |-        
+        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i run.googleapis.com &> /dev/null; \
+        then \
+          gcloud services enable cloudbuild.googleapis.com
+        else
+          echo 'api habilitada'
+          echo "Service : ${{ env.GCP_SERVICE_API_2 }}  already enabled" ! 
+        fi
+
+    - name: Enable cloudfunctions.googleapis.com api
+      run: |-
+        if ! gcloud services list --available --project tccfacens2024-435322 | grep -i cloudfunctions.googleapis.com &> /dev/null; \
+        then \
+          gcloud services enable run.googleapis.com
+        else
+          echo 'api habilitada'
+          echo "Service : ${{ env.GCP_SERVICE_API_3 }}  already enabled" ! 
+        fi
+
+
+
+
   deploy-buckets:
+    needs: [enable-services]
     runs-on: ubuntu-22.04
     timeout-minutes: 10
 
@@ -120,7 +188,7 @@ jobs:
         gsutil cp -r $TARGET gs://${BUCKET_PATH}
 
   build-dataflow-classic-template:
-    needs: [deploy-buckets]
+    needs: [enable-services, deploy-buckets]
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
@@ -171,8 +239,9 @@ jobs:
         --temp_location $GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP \
         --template_location $GCP_BUCKET_DATAFLOW_TEMPLATE
 
+
   deploy-cloud-function:
-    needs: [deploy-buckets, build-dataflow-classic-template]
+    needs: [enable-services, deploy-buckets, build-dataflow-classic-template]
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
@@ -200,10 +269,9 @@ jobs:
       with:
         python-version: 3.10.12
 
-    - name: Create Dataflow classic template in Dataflow Template Bucket
+    - name: Create cloud function
       run: |-
-        cd ${{ env.FUNCTION_SCRIPTS }}
-        gcloud functions deploy ${{ env.FUNCTION_NAME }} \
+        gcloud functions deploy ${{ env.FUNCTION_SCRIPTS }}/${{ env.FUNCTION_NAME }} \
         --runtime ${{ env.PYTHON_FUNCTION_RUNTIME }} \
         --trigger-http \
         --allow-unauthenticated \
@@ -211,11 +279,8 @@ jobs:
         --region ${{ env.REGION }} \
         --entry-point ${{ env.ENTRY_POINT }}
 
-
-        
-
   deploy-cloud-schedule:
-    needs: [deploy-buckets, build-dataflow-classic-template, deploy-cloud-function]
+    needs: [enable-services, deploy-buckets, build-dataflow-classic-template, deploy-cloud-function]
     runs-on: ubuntu-22.04
     timeout-minutes: 10
 
