@@ -311,7 +311,6 @@ jobs:
         --role="${{env.ROLE3}}"
 
 
-
     - name: Create cloud schedule for dataflow classi template execution
       run: |-
         if ! gcloud scheduler jobs list --location ${{env.REGION}} | grep -i ${{env.SCHEDULE_NAME}} &> /dev/null; \
