@@ -326,10 +326,12 @@ jobs:
             INPUT_PAYMENTS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.PAYMENTS}}     
             INPUT_CUSTOMERS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.CUSTOMERS}}  
             DATA_OUTPUT=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_SILVER_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/   
+            
+
 
             gcloud scheduler jobs create http ${{env.SCHEDULE_NAME}} \
             --schedule "00 08 * * *" \
-            --uri "https://$REGION-$PROJECT_ID.cloudfunctions.net/${{ env.FUNCTION_NAME }}" \
+            --uri "https://${{env.REGION}}-${{secrets.PROJECT_ID}}.cloudfunctions.net/${{ env.FUNCTION_NAME }}" \
             --http-method "POST" \
             --location=${{env.REGION}} \
             --headers "Content-Type=application/json,User-Agent=Google-Cloud-Scheduler" \
