@@ -1,7 +1,6 @@
 name: Create and Deploy DataFlow Classic template with a Schedule to run it
 
 env:
-    SCRIPTS : scripts
     REGION: us-east1
     ZONE: us-east1-b
     GCP_BUCKET_DATAFLOW_TEMPLATE : datalake_dataflow_template_17092024
@@ -10,11 +9,39 @@ env:
     GCP_BUCKET_DATAFLOW_DATA : datalake_dataflow_data_17092024
     TRANSIENT_DATALAKE_FILES: transient
     BUCKET_DATALAKE_FOLDER: transient
-    TEMPLATE_NAME : etl_olist_template
+    BUCKET_DATALAKE_SILVER_FOLDER : silver
+    BUCKET_DATALAKE_SUBJECT_FOLDER : olist
+    TEMPLATE_NAME : etl_olist_template    
     INPUT_FOLDER : inputs
     OUTPUT_FOLDER : output
+    ITEMS : olist_order_items_dataset.csv
+    SELLERS : olist_sellers_dataset.csv
+    PRODUCTS : olist_products_dataset.csv
+    ORDERS : olist_orders_dataset.csv
+    REVIEWS : olist_order_reviews_dataset.csv
+    PAYMENTS : olist_order_payments_dataset.csv
+    CUSTOMERS : olist_customers_dataset.csv
     GS_PREFIX : gs://
     RUNNER : Dataflow
+    ####functions parameter
+    FUNCTION_NAME : create_dataflow_job
+    ENTRY_POINT : create_dataflow_job
+    PYTHON_FUNCTION_RUNTIME : python310
+    DATAFLOW_SCRIPTS : dataflow_scripts
+    FUNCTION_SCRIPTS : cloud_function_scripts
+    ROLE1 : roles/cloudfunctions.invoker
+    ROLE2 : roles/dataflow.admin
+    ROLE3 : roles/storage.objectViewer
+    SCHEDULE_NAME : run_dataflow_job_olist_etl
+    DATAFLOW_JOB_NAME : olist_analysis
+    WORKER_MACHINE_TYPE : n1-standard-1
+    NUM_WORKERS : 2 
+    MAX_WORKERS: 2
+    GCP_SERVICE_API_1 : cloudbuild.googleapis.com
+    GCP_SERVICE_API_2 : run.googleapis.com
+    GCP_SERVICE_API_3 : cloudfunctions.googleapis.com
+    SERVICE_ACCOUNT_NAME: account-dataflow-scheduler
+
 
 
 on:
@@ -22,7 +49,45 @@ on:
         branchs: [main]
 
 jobs:
+
+  enable-services:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    
+    # Step to Authenticate with GCP
+    - name: Authorize GCP
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json:  ${{ secrets.GCP_DEVOPS_SA_KEY }}
+
+    # Step to Configure  Cloud SDK
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 363.0.0'
+        project_id: ${{ secrets.PROJECT_ID }}
+        
+    # Step to Configure Docker to use the gcloud command-line tool as a credential helper
+    - name: Configure Docker
+      run: |-
+        gcloud auth configure-docker
+
+    - name: Set up python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8.16
+
+    # Step to Create GCP Bucket 
+    - name: Enable gcp service api's
+      run: |-
+        gcloud services enable ${{ env.GCP_SERVICE_API_1 }}
+        gcloud services enable ${{ env.GCP_SERVICE_API_2 }}
+        gcloud services enable ${{ env.GCP_SERVICE_API_3 }}
+
+
   deploy-buckets:
+    needs: [enable-services]
     runs-on: ubuntu-22.04
     timeout-minutes: 10
 
@@ -33,7 +98,7 @@ jobs:
     - name: Authorize GCP
       uses: 'google-github-actions/auth@v2'
       with:
-        credentials_json:  ${{ secrets.GCP_SA_KEY }}
+        credentials_json:  ${{ secrets.GCP_DEVOPS_SA_KEY }}
     
     # Step to Authenticate with GCP
     - name: Set up Cloud SDK
@@ -99,7 +164,7 @@ jobs:
         gsutil cp -r $TARGET gs://${BUCKET_PATH}
 
   build-dataflow-classic-template:
-    needs: [deploy-buckets]
+    needs: [enable-services, deploy-buckets]
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
@@ -108,7 +173,7 @@ jobs:
     - name: Authorize GCP
       uses: 'google-github-actions/auth@v2'
       with:
-        credentials_json:  ${{ secrets.GCP_SA_KEY }}
+        credentials_json:  ${{ secrets.GCP_DEVOPS_SA_KEY }}
 
     # Step to Configure  Cloud SDK
     - name: Set up Cloud SDK
@@ -129,7 +194,7 @@ jobs:
 
     - name: Install dependencies apache beam dependencies
       run: |-
-        cd ${{ env.SCRIPTS }}
+        cd ${{ env.DATAFLOW_SCRIPTS }}
         python -m pip install --upgrade pip setuptools==65.5.0 wheel
         pip install coverage
         if [ -f requirements.txt ]; 
@@ -145,7 +210,139 @@ jobs:
         GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp
         GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging
 
-        python ${{ env.SCRIPTS }}/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
+        python ${{ env.DATAFLOW_SCRIPTS }}/etl_olist_template.py --runner ${{ env.RUNNER }} --project ${{ secrets.PROJECT_ID }} --region ${{ env.REGION }} \
         --staging_location $GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING \
         --temp_location $GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP \
         --template_location $GCP_BUCKET_DATAFLOW_TEMPLATE
+
+
+  deploy-cloud-function:
+    needs: [enable-services, deploy-buckets, build-dataflow-classic-template]
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    
+    # Step to Authenticate with GCP
+    - name: Authorize GCP
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json:  ${{ secrets.GCP_DEVOPS_SA_KEY }}
+
+    # Step to Configure  Cloud SDK
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 363.0.0'
+        project_id: ${{ secrets.PROJECT_ID }}
+        
+    # Step to Configure Docker to use the gcloud command-line tool as a credential helper
+    - name: Configure Docker
+      run: |-
+        gcloud auth configure-docker
+
+    - name: Set up python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10.12
+
+    - name: Create cloud function
+      run: |-
+        cd ${{ env.FUNCTION_SCRIPTS }}
+        gcloud functions deploy ${{ env.FUNCTION_NAME }} \
+        --gen2 \
+        --runtime ${{ env.PYTHON_FUNCTION_RUNTIME }} \
+        --trigger-http \
+        --allow-unauthenticated \
+        --region ${{ env.REGION }} \
+        --entry-point ${{ env.ENTRY_POINT }}
+
+  deploy-cloud-schedule:
+    needs: [enable-services, deploy-buckets, build-dataflow-classic-template, deploy-cloud-function]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Authorize GCP
+      uses: 'google-github-actions/auth@v2'
+      with:
+        credentials_json:  ${{ secrets.GCP_DEVOPS_SA_KEY }}
+    
+    # Step to Authenticate with GCP
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 363.0.0'
+        project_id: ${{ secrets.PROJECT_ID }}
+
+    # Step to Configure Docker to use the gcloud command-line tool as a credential helper
+    - name: Configure Docker
+      run: |-
+        gcloud auth configure-docker
+
+
+    - name: Create service account
+      run: |-
+      
+        if ! gcloud iam service-accounts list | grep -i ${{ env.SERVICE_ACCOUNT_NAME}} &> /dev/null; \
+          then \
+            gcloud iam service-accounts create ${{ env.SERVICE_ACCOUNT_NAME }} \
+            --display-name="scheduler dataflow service account"
+          fi
+
+    - name: Add the cloudfunctions.invoker role for service account
+      run: |-
+        gcloud projects add-iam-policy-binding ${{secrets.PROJECT_ID}} \
+        --member=serviceAccount:${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com \
+        --role="${{env.ROLE1}}"
+
+    - name: Add the dataflow.admin role for service account
+      run: |-
+        gcloud projects add-iam-policy-binding ${{secrets.PROJECT_ID}} \
+        --member=serviceAccount:${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com \
+        --role="${{env.ROLE2}}"
+
+    - name: Add the storage.objectViewer role for service account
+      run: |-
+        gcloud projects add-iam-policy-binding ${{secrets.PROJECT_ID}} \
+        --member=serviceAccount:${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com \
+        --role="${{env.ROLE3}}"
+
+
+    - name: Create cloud schedule for dataflow classi template execution
+      run: |-
+        if ! gcloud scheduler jobs list --location ${{env.REGION}} | grep -i ${{env.SCHEDULE_NAME}} &> /dev/null; \
+          then \
+            GCP_BUCKET_DATAFLOW_TEMPLATE=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE }}/templates/$TEMPLATE_NAME
+            GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP }}/temp
+            GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING }}/staging
+            INPUT_ITEMS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.ITEMS}}
+            INPUT_SELLERS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.SELLERS}}   
+            INPUT_PRODUCTS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.PRODUCTS}}
+            INPUT_ORDERS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.ORDERS}}    
+            INPUT_REVIEWS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.REVIEWS}}    
+            INPUT_PAYMENTS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.PAYMENTS}}     
+            INPUT_CUSTOMERS=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/${{env.CUSTOMERS}}  
+            DATA_OUTPUT=${{ env.GS_PREFIX }}${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_SILVER_FOLDER }}/${{env.BUCKET_DATALAKE_SUBJECT_FOLDER}}/   
+            
+
+
+            gcloud scheduler jobs create http ${{env.SCHEDULE_NAME}} \
+            --schedule "00 08 * * *" \
+            --uri "https://${{env.REGION}}-${{secrets.PROJECT_ID}}.cloudfunctions.net/${{ env.FUNCTION_NAME }}" \
+            --http-method "POST" \
+            --location=${{env.REGION}} \
+            --headers "Content-Type=application/json,User-Agent=Google-Cloud-Scheduler" \
+            --time-zone=${{env.TIME_ZONE}} \
+            --message-body "{\"project\":\"${{secrets.PROJECT_ID}}\",\"job\":\"${{env.DATAFLOW_JOB_NAME}}\",\"template\":\"$GCP_BUCKET_DATAFLOW_TEMPLATE\",\"parameters\":{\"input_itens\":\"$INPUT_ITEMS\",\"input_seller\":\"$INPUT_SELLERS\",\"input_products\":\"$INPUT_PRODUCTS\",\"input_order\":\"$INPUT_ORDERS\",\"input_reviews\":\"$INPUT_REVIEWS\",\"input_payments\":\"$INPUT_PAYMENTS\",\"input_customer\":\"$INPUT_CUSTOMERS\",\"output\":\"$DATA_OUTPUT\"},\"worker_machine_type\":\"${{ env.WORKER_MACHINE_TYPE}}\",\"num_workers\":${{ env.NUM_WORKERS}},\"max_workers\":${{ env.MAX_WORKERS}},\"staging_location\":\"$GCP_BUCKET_DATAFLOW_TEMPLATE_STAGING\",\"temp_location\":\"$GCP_BUCKET_DATAFLOW_TEMPLATE_TEMP\",\"region\":\"${{env.REGION}}\"}" \
+            --oidc-service-account-email "${{env.SERVICE_ACCOUNT_NAME}}@${{secrets.PROJECT_ID}}.iam.gserviceaccount.com"
+          fi
+
+  
+
+
+
+
+
