@@ -1,3 +1,4 @@
 functions-framework
-google-cloud-bigquery==3.3.1
-numpy==1.26.4
+google-api-python-client==2.134.0
+google-auth==2.30.0
+google-auth-httplib2==0.2.0
