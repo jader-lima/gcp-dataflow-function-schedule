@@ -23,7 +23,6 @@ env:
     CUSTOMERS : olist_customers_dataset.csv
     GS_PREFIX : gs://
     RUNNER : Dataflow
-    ####functions parameter
     FUNCTION_NAME : create_dataflow_job
     ENTRY_POINT : create_dataflow_job
     PYTHON_FUNCTION_RUNTIME : python310
@@ -155,12 +154,11 @@ jobs:
           fi
 
 
-
     # Step to Upload the file to GCP Bucket - transient files
     - name: Upload transient files to Google Cloud Storage
       run: |-
         TARGET=${{ env.TRANSIENT_DATALAKE_FILES }}
-        BUCKET_PATH=${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}/${{ env.BUCKET_DATALAKE_FOLDER }}    
+        BUCKET_PATH=${{ secrets.GCP_BUCKET_DATAFLOW_DATA }}  
         gsutil cp -r $TARGET gs://${BUCKET_PATH}
 
   build-dataflow-classic-template:
